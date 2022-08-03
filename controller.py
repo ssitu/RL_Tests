@@ -5,7 +5,7 @@ from plot import Plot
 
 class Controller:
     """
-    Handles environment and agent interactions
+    Handles interactions between the environment and agent
     """
 
     def __init__(self, env: Env, agent: Agent):
@@ -24,7 +24,7 @@ class Controller:
             done = False
             while not done:
                 action = self.agent.get_action(obs)
-                obs, reward, done = self.env.transition(action)
+                obs, reward, done = self.env.step(action)
                 if render:
                     self.env.render()
                 episode_rewards_sum += reward

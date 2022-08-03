@@ -19,7 +19,7 @@ class Pong(Env):
         super().__init__()
         self.env = gym.make('Pong-v0')
 
-    def transition(self, action: int) -> Tuple[np.array, float, bool]:
+    def step(self, action: int) -> Tuple[np.array, float, bool]:
         next_state, reward, done, _ = self.env.step(action)
         return preprocess(next_state), reward, done
 

@@ -14,7 +14,7 @@ class CartPole(Env):
         super().__init__()
         self.env = gym.make('CartPole-v1')
 
-    def transition(self, action: int) -> Tuple[numpy.array, float, bool]:
+    def step(self, action: int) -> Tuple[numpy.array, float, bool]:
         next_state, reward, done, _ = self.env.step(action)
         return next_state, reward, done
 

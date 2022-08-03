@@ -23,7 +23,7 @@ class Bandit(Env):
     def get_obs(self) -> numpy.ndarray:
         return numpy.array([0])
 
-    def transition(self, action: int) -> Tuple[numpy.ndarray, float, bool]:
+    def step(self, action: int) -> Tuple[numpy.ndarray, float, bool]:
         # self.action_count[action] += 1
         # self.time_steps += 1
         # for i in range(self.arms):

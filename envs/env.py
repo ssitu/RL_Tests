@@ -11,7 +11,7 @@ class Env:
     def __init__(self):
         pass
 
-    def transition(self, action: int) -> Tuple[numpy.ndarray, float, bool]:
+    def step(self, action: int) -> Tuple[numpy.ndarray, float, bool]:
         raise NotImplementedError
 
     def reset(self) -> numpy.ndarray:
