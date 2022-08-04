@@ -1,1 +1,6 @@
 /*.png
+/.idea
+/__pycache__
+/agent/__pycache__
+/agent/architectures/__pycache__
+/envs/__pycache__

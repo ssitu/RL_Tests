@@ -1,5 +1,4 @@
 import torch.nn
-import torch_optimizer as optimizers
 
 import agent.architectures.actor_critic as ac
 import agent.architectures.agac as agac
@@ -150,7 +149,7 @@ class AgentFactory:
         )
         model = ac.TwoHeaded(body, actor, critic, "DeepTwoHead")
         model.initialize(self.observation_space)
-        optimizer = optimizers.Yogi([
+        optimizer = torch.optim.Adam([
             {"params": body.parameters(), "lr": .00005},
             {"params": actor.parameters(), "lr": .0001},
             {"params": critic.parameters(), 'lr': .0005}
