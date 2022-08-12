@@ -1,0 +1,6 @@
+# Remove the dependency on msvc
+# Taken from: https://www.reddit.com/r/rust/comments/7mif9i/how_to_compile_binaries_without_dependencies_on/
+[target.x86_64-pc-windows-msvc]
+rustflags = ["-Ctarget-feature=+crt-static"]
+[target.i686-pc-windows-msvc]
+rustflags = ["-Ctarget-feature=+crt-static"]

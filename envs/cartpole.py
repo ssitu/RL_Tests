@@ -13,12 +13,12 @@ class CartPole(Env):
 
     def __init__(self):
         super().__init__()
-        self.env = gym.make('CartPole-v1')
+        self.env = gym.make('CartPole-v1', new_step_api=True)
         self.rng_seed = 0
 
     def step(self, action: int) -> Tuple[numpy.array, float, bool]:
-        next_state, reward, done, _ = self.env.step(action)
-        return next_state, reward, done
+        next_state, reward, terminated, truncated, _ = self.env.step(action)
+        return next_state, reward, truncated or terminated
 
     def reset(self) -> numpy.ndarray:
         return self.env.reset(seed=self.rng_seed)

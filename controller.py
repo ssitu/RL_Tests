@@ -2,12 +2,6 @@ from agent.agent import Agent
 from envs.env import Env
 from plot import Plot
 
-CONTROLLER_SEED = 0
-
-
-def seed(seed):
-    CONTROLLER_SEED = seed
-
 
 class Controller:
     """
@@ -18,6 +12,8 @@ class Controller:
         self.env = env
         self.agent = agent
         self.plot = Plot("Performance", "Episodes", "Rewards")
+        self.plot.update_interval = .1
+        self._seed = None
 
     def play(self, num_episodes=1, training=True, render=False):
         episodes_played = 0
@@ -26,7 +22,8 @@ class Controller:
         while episodes_played < num_episodes:
             # Start of an episode
             self.agent.reset()
-            self.env.seed(CONTROLLER_SEED)
+            if self.seed is not None:
+                self.env.seed(self._seed)
             obs = self.env.reset()
             done = False
             while not done:
@@ -62,3 +59,11 @@ class Controller:
         :return: None
         """
         return self.agent
+
+    def seed(self, seed):
+        """
+        Set a seed for the environment
+        :param seed: The seed to set
+        :return: None
+        """
+        self._seed = seed
