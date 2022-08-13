@@ -30,16 +30,17 @@ def use_cuda(on: bool) -> torch.device:
 
 if __name__ == '__main__':
     from agent.agent_factory import AgentFactory
-    from envs.cartpole import CartPole
     from controller import Controller
     from envs.bandit import Bandit
+    from envs.cartpole import CartPole
+    from envs.flappybird import FlappyBird
 
     device = use_cuda(False)
 
     # Environment
-    env = CartPole()
+    env = FlappyBird(human_render=True)
 
-    seed = 34358734
+    seed = 0
     agent_factory = AgentFactory(env, device=device)
 
     seed_rng(seed)
@@ -47,15 +48,16 @@ if __name__ == '__main__':
     control = Controller(env, agent)
     control.seed(seed)
     control.plot.start()
-    control.play(500, training=True, render=type(env) == Bandit)
+    control.play(5000, training=True)
     control.plot.save("1")
     control.plot.stop()
 
+    env2 = FlappyBird(human_render=False)
     seed_rng(seed)
     agent2 = agent_factory.agac_1d()
-    control2 = Controller(env, agent2)
+    control2 = Controller(env2, agent2)
     control2.seed(seed)
     control2.plot.start()
-    control2.play(500, training=True, render=type(env) == Bandit)
+    control2.play(500, training=True)
     control2.plot.save("2")
     control2.plot.stop()

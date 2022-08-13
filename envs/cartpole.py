@@ -11,17 +11,16 @@ class CartPole(Env):
     Wrapper for the CartPole gym environment
     """
 
-    def __init__(self):
+    def __init__(self, human_render=False):
         super().__init__()
-        self.env = gym.make('CartPole-v1', new_step_api=True)
-        self.rng_seed = 0
+        self.env = gym.make('CartPole-v1', new_step_api=True, render=human_render)
 
     def step(self, action: int) -> Tuple[numpy.array, float, bool]:
         next_state, reward, terminated, truncated, _ = self.env.step(action)
         return next_state, reward, truncated or terminated
 
     def reset(self) -> numpy.ndarray:
-        return self.env.reset(seed=self.rng_seed)
+        return self.env.reset()
 
     def get_observation_space(self) -> tuple:
         return self.env.observation_space.shape
@@ -29,11 +28,8 @@ class CartPole(Env):
     def get_action_space(self) -> int:
         return self.env.action_space.n
 
-    def render(self):
-        self.env.render()
-
     def seed(self, seed):
-        self.rng_seed = seed
+        self.env.reset(seed=seed)
 
     def __del__(self):
         self.env.close()

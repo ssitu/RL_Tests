@@ -12,12 +12,13 @@ def preprocess(obs: np.array) -> np.array:
 
 class Pong(Env):
     """
-    Wrapper for the CartPole gym environment
+    Wrapper for the Pong gym environment
     """
 
     def __init__(self):
         super().__init__()
         self.env = gym.make('Pong-v0')
+        print("Not updated with the new step and render api")
 
     def step(self, action: int) -> Tuple[np.array, float, bool]:
         next_state, reward, done, _ = self.env.step(action)

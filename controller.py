@@ -8,22 +8,23 @@ class Controller:
     Handles interactions between the environment and agent
     """
 
-    def __init__(self, env: Env, agent: Agent):
+    def __init__(self, env: Env, agent: Agent, verbose=False):
         self.env = env
         self.agent = agent
         self.plot = Plot("Performance", "Episodes", "Rewards")
         self.plot.update_interval = .1
         self._seed = None
+        self._verbose = verbose
 
-    def play(self, num_episodes=1, training=True, render=False):
+    def play(self, num_episodes=1, training=True):
         episodes_played = 0
         episode_rewards_sum = 0
         # Episode loop
+        if self.seed is not None:
+            self.env.seed(self._seed)
         while episodes_played < num_episodes:
             # Start of an episode
             self.agent.reset()
-            if self.seed is not None:
-                self.env.seed(self._seed)
             obs = self.env.reset()
             done = False
             while not done:
@@ -31,13 +32,11 @@ class Controller:
                 action = self.agent.get_action(obs)
                 # Perform the action and get the next state, reward, and done
                 obs, reward, done = self.env.step(action)
-                if render:
-                    self.env.render()
                 episode_rewards_sum += reward
                 self.agent.give_reward(reward)
             # End of an episode
             episodes_played += 1
-            if render:
+            if self._verbose:
                 print(f"Rewards collected: {episode_rewards_sum}")
             self.plot.add_data(episode_rewards_sum)
             episode_rewards_sum = 0
