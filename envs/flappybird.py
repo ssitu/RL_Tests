@@ -1,10 +1,22 @@
-# Gym environment for the game of Flappy Bird
+# Environment for the game of Flappy Bird
 import random
+import time
+from abc import ABC
 from collections import deque
 from typing import Tuple
 
 import numpy as np
 import pygame
+
+from envs.env import Env
+
+TRUNCATE_MAX_SCORE = 5
+BIRD_MAX_VELOCITY = 10
+BIRD_COLOR = (172, 57, 49)
+PIPE_COLOR = (54, 65, 82)
+BACKGROUND_COLOR = (40, 44, 52)
+SCORE_COLOR = (150, 150, 150)
+FRAME_DELAY = 15
 
 
 class Bird:
@@ -31,7 +43,6 @@ class Bird:
         # The bird's acceleration
         self.ay = 0
         self.gravity = 0.015
-        self.max_vy = 10
 
         #
         # Bird represented as a circle
@@ -39,7 +50,6 @@ class Bird:
         self.image = pygame.Surface((self.width, self.height))
         # Transparent image
         self.image.set_alpha(0)
-        self.bird_color = (255, 255, 255)
         # The circle is drawn when rendering the bird
 
     def jump(self):
@@ -49,25 +59,20 @@ class Bird:
         self.vy = -6
         self.ay = 0
 
-    def fall(self):
-        """
-        The bird falls
-        """
-        self.vy += self.ay
-        self.y += self.vy
-        self.ay += self.gravity
-        # Check if the bird is falling too fast
-        if self.vy > self.max_vy:
-            self.vy = self.max_vy
-
     def update(self, action: int):
         """
         Update the bird's position and velocity
         """
         if action == 1:
             self.jump()
-        else:
-            self.fall()
+
+        # Update the bird's position
+        self.y += self.vy
+        self.vy += self.ay
+        self.ay += self.gravity
+        # Check if the bird is falling too fast
+        if self.vy > BIRD_MAX_VELOCITY:
+            self.vy = BIRD_MAX_VELOCITY
 
     def render(self, screen: pygame.Surface):
         """
@@ -76,7 +81,7 @@ class Bird:
         # Draw the bird on the screen
         screen.blit(self.image, (self.x, self.y))
         # Draw a circle to represent the bird
-        pygame.draw.circle(screen, self.bird_color, (self.x + self.width // 2, self.y + self.height // 2),
+        pygame.draw.circle(screen, BIRD_COLOR, (self.x + self.width // 2, self.y + self.height // 2),
                            self.height // 2)
 
     def get_state(self) -> Tuple[float, float]:
@@ -110,7 +115,6 @@ class Pipe:
         # The pipe's acceleration
         self.ax = None
         self.reset()
-        self.pipe_color = (0, 100, 0)
 
     def update(self):
         """
@@ -123,7 +127,7 @@ class Pipe:
         """
         Render the pipe on the screen
         """
-        pygame.draw.rect(screen, self.pipe_color, (int(self.x), int(self.y), self.width, self.height))
+        pygame.draw.rect(screen, PIPE_COLOR, (int(self.x), int(self.y), self.width, self.height))
 
     def get_state(self) -> Tuple[float, float]:
         """
@@ -139,11 +143,11 @@ class Pipe:
         self.x, self.y, self.width, self.height = x, y, width, height
 
     def reset(self):
-        self.vx = -5
+        self.vx = -4
         self.ax = 0
 
 
-class FlappyBird:
+class FlappyBird(Env, ABC):
     """
     The game class
     The game is responsible for the rendering.
@@ -174,7 +178,8 @@ class FlappyBird:
     The game is done when the bird hits the pipes.
     """
 
-    def __init__(self):
+    def __init__(self, human_render: bool = False, truncate=True, fastest_speed=False):
+        super().__init__(human_render)
         # The pygame window
         self.screen = None
         # The window size
@@ -186,8 +191,6 @@ class FlappyBird:
         self.bird.x = self.window_width / 3
         # The score
         self.score = 0
-        # The score font color
-        self.score_color = (0, 0, 0)
         # The index of the pipe pair that the bird needs to pass to get a reward and increase the score
         self.current_pair_index = 0
         # Pipes
@@ -197,21 +200,23 @@ class FlappyBird:
         # Once the left most pipe pair leaves the screen,
         # it is removed from the deque and added to the back of the deque with a new random position
         self.pipe_pairs = deque()
-        self.pipe_distance = 300
-        self.pipe_gap = 150
+        self.pipe_distance = 400
+        self.pipe_gap = 200
         self.pipe_width = 100
         self.pipe_height = 1000
         # This offset is used to make the place the gap between the pipes
         # not too close to the top and bottom of the screen
-        self.pipe_gap_offset = 50
-        # sky blue background
-        self.background_color = (135, 206, 250)
+        self.pipe_gap_offset = 100
         # The font used to display the score
         # Must initialize the pygame font module
         pygame.font.init()
         self.font = pygame.font.SysFont('Arial', 30)
-        # Setting used to slow down the game for human play
-        self.human_mode = False
+        # Random number generator
+        self.rng = random.Random()
+        self.high_score = 0
+        self.truncate = truncate
+        self.last_time = None
+        self.fastest_speed = fastest_speed
         self.reset()
 
     def reset(self):
@@ -220,58 +225,102 @@ class FlappyBird:
         # Move the bird vertically near to the center of the screen
         self.bird.y = self.window_height / 2
         self.pipe_pairs = deque()
+        if self.score > self.high_score:
+            self.high_score = self.score
+            print("New high score: {}".format(self.high_score))
         self.score = 0
         # The index of the pipe pair that the bird needs to pass to get a reward and increase the score
         self.current_pair_index = 0
         # Pipes
-        self.create_pipe_pair()
+        self._create_pipe_pair()
+        self.last_time = time.time()
 
-        return self.get_state()
+        return self._get_state()
 
     def step(self, action: int) -> Tuple[np.ndarray, float, bool]:
+        #
+        # Call to events to prevent the game from freezing
+        #
+        # Must initialize pygame video system
+        pygame.display.init()
+        # Call to events
+        pygame.event.pump()
+
+        if self.human_render:
+            self.render()
+            delta_time = time.time() - self.last_time
+            if not self.fastest_speed:
+                pygame.time.wait(FRAME_DELAY - int(delta_time * 1000))
+            self.last_time = time.time()
         # Update the game
-        self.update(action)
-        # Delay if in human mode
-        if self.human_mode:
-            pygame.time.wait(15)
+        self._update(action)
         # Get the state
-        state = self.get_state()
+        state = self._get_state()
         # Get the reward
-        reward = self.get_reward()
+        reward = self._get_reward()
         # Check if the game is done
-        done = self.is_done()
+        done = self._is_terminated() or self._is_truncated()
         return state, reward, done
 
-    def get_observation_space(self) -> int:
-        pass
+    def get_observation_space(self) -> tuple:
+        # This is the length of the state vector
+        return len(self._get_state()),
 
     def get_action_space(self) -> int:
-        pass
+        # The action space is 0 for do nothing, 1 for flap
+        return 2
 
     def render(self):
         # Render the game
         if self.screen is None:
             self.screen = pygame.display.set_mode((self.window_width, self.window_height))
         # Draw the background
-        self.screen.fill(self.background_color)
+        self.screen.fill(BACKGROUND_COLOR)
         self.bird.render(self.screen)
         for top, bottom in self.pipe_pairs:
             top.render(self.screen)
             bottom.render(self.screen)
         # Draw the score
-        score_text = self.font.render(f"Score: {self.score}", True, self.score_color)
+        score_text = self.font.render(f"Score: {self.score}", True, SCORE_COLOR)
         self.screen.blit(score_text, (10, 10))
+        # Draw the high score
+        high_score_text = self.font.render(f"High score: {self.high_score}", True, SCORE_COLOR)
+        self.screen.blit(high_score_text, (10, 50))
         # Update the screen
         pygame.display.flip()
 
+    def seed(self, seed):
+        # Seed the random number generator
+        self.rng.seed(seed)
 
-    def get_state(self) -> np.ndarray:
+    def _get_state(self) -> np.ndarray:
         # Get the state
-        state = np.zeros((1, 1))
-        state[0, 0] = self.bird.y
-        return state
+        # Scale down the bird's y
+        bird_y = self.bird.y / self.window_height
+        # Scale down the bird's y velocity
+        bird_vy = self.bird.vy / BIRD_MAX_VELOCITY
 
-    def update(self, action: int):
+        # The next pipe pair that the bird will pass through
+        _, bottom = self.pipe_pairs[self.current_pair_index]
+        # Scale down the next pipes' x
+        pipe_x = bottom.x / self.window_width
+        # Scale down the next pipes' y
+        pipe_y = bottom.y / self.window_height
+
+        # The following pipe pair after the current one
+        following = self.current_pair_index + 1
+        following_pipe_x = 0
+        following_pipe_y = 0
+        if following < len(self.pipe_pairs):
+            _, following_bottom = self.pipe_pairs[following]
+            # Scale down the pipes' x
+            following_pipe_x = following_bottom.x / self.window_width
+            # Scale down the pipes' y
+            following_pipe_y = following_bottom.y / self.window_height
+
+        return np.array([bird_y, bird_vy, pipe_x, pipe_y, following_pipe_x, following_pipe_y])
+
+    def _update(self, action: int):
         self.bird.update(action)
         for top, bottom in self.pipe_pairs:
             top.update()
@@ -291,7 +340,7 @@ class FlappyBird:
         if oldest_top.x + oldest_top.width < 0:
             pair = self.pipe_pairs.popleft()
             top, bottom = pair
-            self.arrange_pipe_pair(top, bottom)
+            self._arrange_pipe_pair(top, bottom)
             self.pipe_pairs.append(pair)
             # Adjust the current pair index
             self.current_pair_index -= 1
@@ -299,18 +348,18 @@ class FlappyBird:
         # Check if the last pair of pipes has moved a certain distance, and if so, create a new pair of pipes
         last_top, last_bottom = self.pipe_pairs[-1]
         if last_top.x + last_top.width < self.window_width - self.pipe_distance:
-            self.create_pipe_pair()
+            self._create_pipe_pair()
 
-    def get_reward(self):
+    def _get_reward(self):
         # Get the reward
 
         # If the game is done, return a reward of -1, otherwise return 1
-        if self.is_done():
+        if self._is_terminated():
             return -1
         else:
-            return 1
+            return .1
 
-    def is_done(self) -> bool:
+    def _is_terminated(self) -> bool:
         # Check if the game is done
         # Check if the bird is out of the screen
         if self.bird.y < 0 or self.bird.y > self.window_height:
@@ -325,20 +374,27 @@ class FlappyBird:
         for top, bottom in self.pipe_pairs:
             # Check if the bird hits the top pipe
             # using the bird_intersects_pipe function
-            if self.bird_intersects_pipe(top):
+            if self._bird_intersects_pipe(top):
                 return True
             # Check if the bird hits the bottom pipe
-            if self.bird_intersects_pipe(bottom):
+            if self._bird_intersects_pipe(bottom):
                 return True
         return False
 
-    def bird_intersects_pipe(self, pipe: Pipe) -> bool:
+    def _is_truncated(self):
+        if self.truncate and self.score >= TRUNCATE_MAX_SCORE:
+            return True
+
+    def _bird_intersects_pipe(self, pipe: Pipe) -> bool:
         # Check if the bird hits a pipe using
         # the bird's x, y, width, and height
         # And the pipe's x, y, width, and height
-        return self.bird.x + self.bird.width > pipe.x and self.bird.x < pipe.x + pipe.width and self.bird.y + self.bird.height > pipe.y and self.bird.y < pipe.y + pipe.height
+        return self.bird.x + self.bird.width > pipe.x \
+               and self.bird.x < pipe.x + pipe.width \
+               and self.bird.y + self.bird.height > pipe.y \
+               and self.bird.y < pipe.y + pipe.height
 
-    def arrange_pipe_pair(self, top_pipe: Pipe, bottom_pipe: Pipe):
+    def _arrange_pipe_pair(self, top_pipe: Pipe, bottom_pipe: Pipe):
         # Arrange the pipes in a pair
         # If the deque is empty, position the pipes just off the right side of the screen
         # If the deque is not empty, position the pipes the pipe_distance away from the rightmost pair of pipes
@@ -351,11 +407,12 @@ class FlappyBird:
             bottom_pipe.x = right_most_bottom.x + right_most_top.width + self.pipe_distance
         # Position the top pipe at a random height between the top of the screen + the gap offset + the gap size
         # and the bottom of the screen - the gap offset - the gap size
-        top_pipe.y = -self.pipe_height + random.randint(self.pipe_gap_offset + self.pipe_gap, self.window_height - self.pipe_gap_offset - self.pipe_gap)
+        top_pipe.y = -self.pipe_height + self.rng.randint(self.pipe_gap_offset,
+                                                          self.window_height - self.pipe_gap_offset - self.pipe_gap)
         # Position the bottom pipe at the same height as the top pipe
         bottom_pipe.y = top_pipe.y + self.pipe_gap + self.pipe_height
 
-    def create_pipe_pair(self):
+    def _create_pipe_pair(self):
         bottom_pipe = Pipe()
         top_pipe = Pipe()
         # Set the width and height of the pipes
@@ -364,10 +421,6 @@ class FlappyBird:
         top_pipe.width = self.pipe_width
         top_pipe.height = self.pipe_height
         # Arrange the pipes in a pair
-        self.arrange_pipe_pair(top_pipe, bottom_pipe)
+        self._arrange_pipe_pair(top_pipe, bottom_pipe)
         # Add the pair to the deque
         self.pipe_pairs.append((top_pipe, bottom_pipe))
-
-    def set_human_mode(self, human_mode: bool):
-        # Make the game loop delay for human players if true
-        self.human_mode = human_mode

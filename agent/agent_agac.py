@@ -7,7 +7,7 @@ import torch
 from torch.optim import Optimizer
 
 import rust_utils
-from agent import utils
+import utils
 from agent.architectures.agac import AGACNet
 from agent.agent_torch import AgentTorch, DEFAULT_DEVICE
 

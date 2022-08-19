@@ -16,7 +16,7 @@ class AgentFactory:
         self._observation_space = self._env.get_observation_space()
         self.device = device
 
-    def normal_1d(self) -> AgentPPO:
+    def ppo_separate_small_1d(self) -> AgentPPO:
         actor = torch.nn.Sequential(
             torch.nn.LazyLinear(10),
             torch.nn.LeakyReLU(),
@@ -33,7 +33,7 @@ class AgentFactory:
             torch.nn.LeakyReLU(),
             torch.nn.LazyLinear(1),
         ).to(self.device)
-        model = ac.Separate(actor, critic, "Separate", device=self.device)
+        model = ac.Separate(actor, critic, "test", device=self.device)
         model.initialize(self._observation_space)
         optimizer = torch.optim.Adam([
             {"params": actor.parameters(), "lr": .0005},
@@ -41,12 +41,44 @@ class AgentFactory:
         ])
         return AgentPPO(model, optimizer, device=self.device)
 
-    def normal_1d_wide(self) -> AgentPPO:
+    def ppo_separate_wide_1d(self, name) -> AgentPPO:
         actor = torch.nn.Sequential(
-            torch.nn.LazyLinear(50),
+            torch.nn.LazyLinear(100),
             torch.nn.LeakyReLU(),
-            torch.nn.LazyLinear(50),
+            torch.nn.LazyLinear(100),
             torch.nn.LeakyReLU(),
+            torch.nn.LazyLinear(100),
+            torch.nn.LeakyReLU(),
+            torch.nn.LazyLinear(100),
+            torch.nn.LeakyReLU(),
+            torch.nn.LazyLinear(100),
+            torch.nn.LeakyReLU(),
+            torch.nn.LazyLinear(self._action_space),
+            torch.nn.Softmax(dim=-1)
+        ).to(self.device)
+        critic = torch.nn.Sequential(
+            torch.nn.LazyLinear(100),
+            torch.nn.LeakyReLU(),
+            torch.nn.LazyLinear(100),
+            torch.nn.LeakyReLU(),
+            torch.nn.LazyLinear(100),
+            torch.nn.LeakyReLU(),
+            torch.nn.LazyLinear(100),
+            torch.nn.LeakyReLU(),
+            torch.nn.LazyLinear(100),
+            torch.nn.LeakyReLU(),
+            torch.nn.LazyLinear(1),
+        ).to(self.device)
+        model = ac.Separate(actor, critic, name, device=self.device)
+        model.initialize(self._observation_space)
+        optimizer = torch.optim.Adam([
+            {"params": actor.parameters(), "lr": .00005},
+            {"params": critic.parameters(), 'lr': .0001}
+        ])
+        return AgentPPO(model, optimizer, device=self.device)
+
+    def ppo_separate_critic_heavy_1d(self, name) -> AgentPPO:
+        actor = torch.nn.Sequential(
             torch.nn.LazyLinear(50),
             torch.nn.LeakyReLU(),
             torch.nn.LazyLinear(50),
@@ -65,15 +97,15 @@ class AgentFactory:
             torch.nn.LeakyReLU(),
             torch.nn.LazyLinear(1),
         ).to(self.device)
-        model = ac.Separate(actor, critic, "Separate", device=self.device)
+        model = ac.Separate(actor, critic, name, device=self.device)
         model.initialize(self._observation_space)
         optimizer = torch.optim.Adam([
-            {"params": actor.parameters(), "lr": .0005},
-            {"params": critic.parameters(), 'lr': .0005}
+            {"params": actor.parameters(), "lr": .000001},
+            {"params": critic.parameters(), 'lr': .000005}
         ])
         return AgentPPO(model, optimizer, device=self.device)
 
-    def normal_1d_deep(self) -> AgentPPO:
+    def ppo_separate_deep_1d(self) -> AgentPPO:
         actor = torch.nn.Sequential(
             torch.nn.LazyLinear(10),
             torch.nn.LeakyReLU(),
@@ -109,7 +141,7 @@ class AgentFactory:
             torch.nn.LeakyReLU(),
             torch.nn.LazyLinear(1),
         ).to(self.device)
-        model = ac.Separate(actor, critic, "Separate", device=self.device)
+        model = ac.Separate(actor, critic, "test", device=self.device)
         model.initialize(self._observation_space)
         optimizer = torch.optim.Adam([
             {"params": actor.parameters(), "lr": .0005},
@@ -117,7 +149,7 @@ class AgentFactory:
         ])
         return AgentPPO(model, optimizer, device=self.device)
 
-    def twohead_1d_deep_wide(self) -> AgentPPO:
+    def ppo_twohead_wide_1d(self) -> AgentPPO:
         body = torch.nn.Sequential(
             torch.nn.LazyLinear(50),
             torch.nn.LeakyReLU(),
@@ -145,7 +177,7 @@ class AgentFactory:
             torch.nn.LeakyReLU(),
             torch.nn.LazyLinear(1)
         ).to(self.device)
-        model = ac.TwoHeaded(body, actor, critic, "DeepTwoHead", device=self.device)
+        model = ac.TwoHeaded(body, actor, critic, "test", device=self.device)
         model.initialize(self._observation_space)
         optimizer = torch.optim.Adam([
             {"params": body.parameters(), "lr": .00005},
@@ -155,7 +187,7 @@ class AgentFactory:
         agent = AgentPPO(model, optimizer, device=self.device)
         return agent
 
-    def twohead_1d(self) -> AgentPPO:
+    def ppo_twohead_small_1d(self) -> AgentPPO:
         body = torch.nn.Sequential(
             torch.nn.LazyLinear(20),
             torch.nn.LeakyReLU(),
@@ -177,7 +209,7 @@ class AgentFactory:
             torch.nn.LeakyReLU(),
             torch.nn.LazyLinear(1)
         ).to(self.device)
-        model = ac.TwoHeaded(body, actor, critic, "DeepTwoHead", device=self.device)
+        model = ac.TwoHeaded(body, actor, critic, "test", device=self.device)
         model.initialize(self._observation_space)
         optimizer = torch.optim.Adam([
             {"params": body.parameters(), "lr": .00005},
@@ -187,7 +219,7 @@ class AgentFactory:
         agent = AgentPPO(model, optimizer, device=self.device)
         return agent
 
-    def normal_2d(self) -> AgentPPO:
+    def ppo_separate_small_2d(self) -> AgentPPO:
         actor = torch.nn.Sequential(
             torch.nn.LazyConv2d(5, 5),
             torch.nn.ReLU(),
@@ -227,7 +259,7 @@ class AgentFactory:
             torch.nn.LeakyReLU(),
             torch.nn.LazyLinear(1),
         ).to(self.device)
-        model = ac.Separate(actor, critic, "normal_2d", device=self.device)
+        model = ac.Separate(actor, critic, "test", device=self.device)
         obs_space = self._observation_space
         model.initialize(obs_space)
         optimizer = torch.optim.Adam([
@@ -236,7 +268,7 @@ class AgentFactory:
         ])
         return AgentPPO(model, optimizer, device=self.device)
 
-    def twohead_2d(self) -> AgentPPO:
+    def ppo_twohead_small_2d(self) -> AgentPPO:
         body = torch.nn.Sequential(
             torch.nn.LazyConv2d(5, 5),
             torch.nn.ReLU(),
@@ -274,7 +306,7 @@ class AgentFactory:
             torch.nn.LeakyReLU(),
             torch.nn.LazyLinear(1)
         ).to(self.device)
-        model = ac.TwoHeaded(body, actor, critic, "DeepTwoHead", self.device)
+        model = ac.TwoHeaded(body, actor, critic, "test", self.device)
         model.initialize(self._observation_space)
         optimizer = torch.optim.Adam([
             {"params": body.parameters(), "lr": .0001},
@@ -311,7 +343,7 @@ class AgentFactory:
             torch.nn.Softmax(dim=-1)
         ).to(self.device)
 
-        model = agac.Separate(actor, critic, adversary, "AGAC", self.device)
+        model = agac.Separate(actor, critic, adversary, "test", self.device)
         model.initialize(self._observation_space)
         optimizer = torch.optim.Adam([
             {"params": actor.parameters(), "lr": .0005},

@@ -7,7 +7,7 @@ import torch
 from torch.optim import Optimizer
 
 import rust_utils
-from agent import utils
+import utils
 from agent.architectures.actor_critic import ACNet
 from agent.agent_torch import AgentTorch, DEFAULT_DEVICE
 
@@ -21,7 +21,7 @@ ENTROPY_WEIGHT = .01
 class AgentPPO(AgentTorch):
 
     def __init__(self, model: ACNet, optimizer: Optimizer, device=DEFAULT_DEVICE):
-        super().__init__(device=device)
+        super().__init__(model.name, device=device)
         self.model = model
         self.optimizer = optimizer
         self.critic_loss_fn = torch.nn.HuberLoss()
@@ -30,12 +30,21 @@ class AgentPPO(AgentTorch):
         self.collected_probs = []
         # self.collected_state_values = []
         self.rewards = []
+        self.greedy = False
 
     def get_action(self, obs: numpy.ndarray, training=True):
         state = torch.tensor(obs, dtype=torch.float, device=self.device).unsqueeze(0)
         # Sample action
         probabilities, state_value = self.model(state)
-        action = rust_utils.sample_distribution(probabilities.tolist()[0], random.random())
+        if self.greedy:
+            max = 0
+            action = 0
+            for i, x in enumerate(probabilities.tolist()[0]):
+                if max < x:
+                    max = x
+                    action = i
+        else:
+            action = rust_utils.sample_distribution(probabilities.tolist()[0], random.random())
         if training:
             self.states.append(state)
             self.collected_probs.append(probabilities)
@@ -93,14 +102,18 @@ class AgentPPO(AgentTorch):
             loss.backward(retain_graph=True)
             self.optimizer.step()
 
-    def save(self):
-        pass
+    def save(self, filename: str = None):
+        utils.save(self.model, self.optimizer, filename if filename else self.model.name)
 
-    def load(self):
-        pass
+    def load(self, filename: str = None):
+        utils.load(self.model, self.optimizer, filename if filename else self.model.name, self.device)
 
     def reset(self):
         self.states.clear()
         self.actions.clear()
         self.collected_probs.clear()
         self.rewards.clear()
+
+    def set_greedy(self, greedy: bool):
+        # Instead of sampling from the distribution given by the policy network, action with the highest value is chosen
+        self.greedy = greedy

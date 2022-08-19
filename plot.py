@@ -5,6 +5,7 @@ from matplotlib import pyplot as plt
 import matplotlib
 
 import multiprocessing as mp
+import utils
 
 
 class Plot(mp.Process):
@@ -44,14 +45,19 @@ class Plot(mp.Process):
         self.update_interval = None
         self.moving_avg = None
 
+        # Prevent repeated initialization when saving a plot multiple times
+        self.plot_initialized = False
+
     def init_plot_system(self):
         # Set up the plot
-        # Obtain the figure and axes
-        self.fig = plt.figure()
-        self.ax = self.fig.add_subplot(111)
-        # Simplify for faster rendering
-        matplotlib.rcParams['path.simplify'] = True
-        matplotlib.rcParams['path.simplify_threshold'] = 1.0
+        if not self.plot_initialized:
+            # Obtain the figure and axes
+            self.fig = plt.figure()
+            self.ax = self.fig.add_subplot(111)
+            # Simplify for faster rendering
+            matplotlib.rcParams['path.simplify'] = True
+            matplotlib.rcParams['path.simplify_threshold'] = 1.0
+            self.plot_initialized = True
         # The data to plot
         self.data = []
         # The moving average of the data
@@ -209,7 +215,8 @@ class Plot(mp.Process):
         for i in range(len(self.shared_list)):
             self.update_local_data(self.shared_list[i])
         self.ax.plot(self.moving_averages)
-        plt.savefig(filename)
+        dst = utils.get_current_directory() + filename
+        plt.savefig(dst)
 
 
 if __name__ == '__main__':

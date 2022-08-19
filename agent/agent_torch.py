@@ -5,10 +5,11 @@ from agent.agent import Agent
 
 DEFAULT_DEVICE = torch.device("cpu")
 
+
 class AgentTorch(Agent):
 
-    def __init__(self, device=DEFAULT_DEVICE):
-        super().__init__()
+    def __init__(self, name: str,  device=DEFAULT_DEVICE):
+        super().__init__(name)
         self.device = device
 
     def reset(self):
