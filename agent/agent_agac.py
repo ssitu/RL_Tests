@@ -1,3 +1,5 @@
+# https://arxiv.org/pdf/2102.04376.pdf
+
 from random import random
 
 import numpy
@@ -9,7 +11,8 @@ from torch.optim import Optimizer
 import rust_utils
 import utils
 from agent.architectures.agac import AGACNet
-from agent.agent_torch import AgentTorch, DEFAULT_DEVICE
+from agent.agent_torch import AgentTorch
+from agent.return_estimates.return_estimate import EpisodicReturn
 
 DISCOUNT_FACTOR = .99
 EPSILON = .2
@@ -23,19 +26,18 @@ c = .01
 
 class AgentAGAC(AgentTorch):
 
-    def __init__(self, model: AGACNet, optimizer: Optimizer, device=DEFAULT_DEVICE):
-        super().__init__(device=device)
-        self.model = model
-        self.optimizer = optimizer
+    def __init__(self, model: AGACNet, optimizer: Optimizer, return_estimation: EpisodicReturn, device: torch.device):
+        super().__init__(model, optimizer, device=device)
         self.critic_loss_fn = torch.nn.HuberLoss()
         self.states = []
         self.actions = []
         self.collected_probabilities = []
         self.rewards = []
         self.follow_adversary = False
+        self.return_estimation = return_estimation
 
     def get_action(self, obs: numpy.ndarray, training=True):
-        state = torch.tensor(obs, dtype=torch.float).unsqueeze(0)
+        state = torch.as_tensor(obs, dtype=torch.float, device=self.device).unsqueeze(0)
         # Sample action
         probabilities, _, adversary_probs = self.model(state)
         if not self.follow_adversary:
@@ -106,12 +108,6 @@ class AgentAGAC(AgentTorch):
 
     def use_adversary(self):
         self.follow_adversary = True
-
-    def save(self):
-        pass
-
-    def load(self):
-        pass
 
     def reset(self):
         self.states.clear()

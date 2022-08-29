@@ -6,7 +6,7 @@ import numpy as np
 from envs.env import Env
 
 
-def preprocess(obs: np.array) -> np.array:
+def preprocess(obs: np.ndarray) -> np.array:
     return np.expand_dims(np.sum(obs.transpose([2, 0, 1]), axis=0, dtype=float), axis=0)
 
 

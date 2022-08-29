@@ -3,7 +3,7 @@ import random
 
 import numpy as np
 import torch
-from torch import tensor
+from torch import Tensor
 
 import rust_utils
 
@@ -15,12 +15,12 @@ AGENTS_FOLDER = "agent/"
 SAVED_MODELS_FOLDER = "saved_models/"
 
 
-def action_probs(probs: tensor, actions: tensor):
+def action_probs(probs: Tensor, actions: Tensor):
     """
-    Creates a tensor made up of the probabilities of the taken actions
-    :param probs: tensor of shape (batch_size, action_space), should be akin to a list of probabilities distributions
-    :param actions: tensor of shape (batch_size,), should be akin to a list of the actions taken over the episode
-    :return: tensor of shape (batch_size,), the probabilities of the taken actions
+    Creates a Tensor made up of the probabilities of the taken actions
+    :param probs: Tensor of shape (batch_size, action_space), should be akin to a list of probabilities distributions
+    :param actions: Tensor of shape (batch_size,), should be akin to a list of the actions taken over the episode
+    :return: Tensor of shape (batch_size,), the probabilities of the taken actions
     """
     # probs: batch_size x n_actions
     # actions: batch_size x 1
@@ -35,19 +35,27 @@ def discounted_rewards(rewards: list, discount: float):
     return rust_utils.discounted_rewards(rewards, discount)
 
 
-def entropy(probs: tensor):
+def td_lambda_return(rewards: list, state_values: list, discount: float, lam: float):
+    """
+    Calculates the TD-lambda return for an episode
+    :param rewards: list of rewards for an episode
+    :param state_values: list of state values for an episode
+    :param discount: discount factor
+    :param lam: lambda factor, 0 <= lambda <= 1, where 0 is the same as one step TD, and 1 is the Monte Carlo method
+    :return: list of returns for an episode
+    """
+    return rust_utils.td_lambda_return(rewards, state_values, discount, lam)
+
+
+def entropy(probs: Tensor):
     return -(probs * torch.log(probs + SMALL_VAL)).sum(dim=1)
 
 
-def kl_div(probs1: tensor, probs2: tensor):
+def kl_div(probs1: Tensor, probs2: Tensor):
     if len(probs1.size()) > 1:
         return (probs1 * torch.log(probs1 / (probs2 + SMALL_VAL) + SMALL_VAL)).sum(dim=1).unsqueeze(1)
     else:
         return (probs1 * torch.log(probs1 / (probs2 + SMALL_VAL) + SMALL_VAL)).sum()
-
-
-def n_step(rewards: tensor, values: tensor, discount, t, n):
-    pass
 
 
 def get_current_directory():
@@ -113,6 +121,7 @@ def use_cuda(on: bool) -> torch.device:
         print(f"CUDA current device id: {cuda_id}")
         print(f"CUDA device name: {torch.cuda.get_device_name(cuda_id)}")
         torch.backends.cuda.matmul.allow_tf32 = True
+        torch.backends.cudnn.benchmark = True
         return torch.device("cuda")
     else:
         print(f"Cores Available: {torch.get_num_threads()}")
@@ -121,7 +130,7 @@ def use_cuda(on: bool) -> torch.device:
 
 if __name__ == "__main__":
     # Testing the discounted_rewards function
-    rewards = [random.randint(-100, 100) for x in range(1, 1000)]
+    rewards = [random.randint(-100, 100) for x in range(1, 10000)]
     discount = 0.99
     # Calculate the discounted rewards
     discounted_reward = 0.

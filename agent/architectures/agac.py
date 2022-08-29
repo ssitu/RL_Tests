@@ -1,46 +1,40 @@
 from typing import Tuple
 
 import torch
-from torch import tensor
+from torch import Tensor
 from torch.nn import Sequential
-from torchinfo import torchinfo
 
-from agent.agent_torch import DEFAULT_DEVICE
+from agent.architectures.architecture import Architecture
 
 
-class AGACNet(torch.nn.Module):
-    def __init__(self, name: str, device=DEFAULT_DEVICE):
-        super().__init__()
-        self.name = name
-        self.device = device
+class AGACNet(Architecture):
+    def __init__(self, name: str, device: torch.device):
+        super().__init__(name, device=device)
 
-    def forward(self, obs: tensor) -> Tuple[tensor, float, tensor]:
+    def forward(self, obs: Tensor) -> Tuple[Tensor, float, Tensor]:
         pass
-
-    def initialize(self, input_shape):
-        torchinfo.summary(self, input_shape, device=self.device)
 
 
 class Separate(AGACNet):
-    def __init__(self, actor: Sequential, critic: Sequential, adversary: Sequential, name: str, device=DEFAULT_DEVICE):
+    def __init__(self, actor: Sequential, critic: Sequential, adversary: Sequential, name: str, device: torch.device):
         super().__init__(name, device)
         self.actor = actor
         self.critic = critic
         self.adversary = adversary
 
-    def forward(self, obs: tensor) -> Tuple[tensor, float, tensor]:
+    def forward(self, obs: Tensor) -> Tuple[Tensor, float, Tensor]:
         return self.actor(obs), self.critic(obs), self.adversary(obs)
 
 
 class MultiHead(AGACNet):
     def __init__(self, body: Sequential,
-                 actor: Sequential, critic: Sequential, adversary: Sequential, name: str, device=DEFAULT_DEVICE):
+                 actor: Sequential, critic: Sequential, adversary: Sequential, name: str, device: torch.device):
         super().__init__(name, device)
         self.body = body
         self.actor = actor
         self.critic = critic
         self.adversary = adversary
 
-    def forward(self, obs: tensor) -> Tuple[tensor, float, tensor]:
+    def forward(self, obs: Tensor) -> Tuple[Tensor, float, Tensor]:
         x = self.body(obs)
         return self.actor(x), self.critic(x), self.adversary(x)

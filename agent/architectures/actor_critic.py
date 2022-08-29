@@ -1,19 +1,17 @@
 from typing import Tuple
 
-from torch import tensor
-from torch.nn import Sequential, Module
-from torchinfo import torchinfo
+import torch
+from torch import Tensor
+from torch.nn import Sequential
 
-from agent.agent_torch import DEFAULT_DEVICE
+from agent.architectures.architecture import Architecture
 
 
-class ACNet(Module):
-    def __init__(self, name: str, device=DEFAULT_DEVICE):
-        super().__init__()
-        self.name = name
-        self.device = device
+class ACNet(Architecture):
+    def __init__(self, name: str, device: torch.device):
+        super().__init__(name, device=device)
 
-    def forward(self, obs: tensor) -> Tuple[tensor, float]:
+    def forward(self, obs: Tensor) -> Tuple[Tensor, float]:
         """
         Make a forward pass through the model
         :return: Outputs a tuple containing
@@ -22,28 +20,25 @@ class ACNet(Module):
         """
         pass
 
-    def initialize(self, input_shape):
-        torchinfo.summary(self, input_shape, device=self.device)
-
 
 class Separate(ACNet):
-    def __init__(self, actor: Sequential, critic: Sequential, name: str, device=DEFAULT_DEVICE):
+    def __init__(self, actor: Sequential, critic: Sequential, name: str, device: torch.device):
         super().__init__(name, device=device)
         self.actor = actor
         self.critic = critic
 
-    def forward(self, obs: tensor) -> Tuple[tensor, float]:
+    def forward(self, obs: Tensor) -> Tuple[Tensor, float]:
         return self.actor(obs), self.critic(obs)
 
 
 class TwoHeaded(ACNet):
-    def __init__(self, body: Sequential, actor: Sequential, critic: Sequential, name: str, device=DEFAULT_DEVICE):
+    def __init__(self, body: Sequential, actor: Sequential, critic: Sequential, name: str, device: torch.device):
         super().__init__(name, device=device)
         self.body = body
         self.actor = actor
         self.critic = critic
 
-    def forward(self, obs: tensor) -> Tuple[tensor, float]:
+    def forward(self, obs: Tensor) -> Tuple[Tensor, float]:
         x = self.body(obs)
         state_value = self.critic(x)
         prob_dist = self.actor(x)

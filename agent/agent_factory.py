@@ -5,6 +5,8 @@ import agent.architectures.agac as agac
 from agent.agent_agac import AgentAGAC
 from agent.agent_ppo import AgentPPO
 from agent.agent_torch import DEFAULT_DEVICE
+from agent.return_estimates.monte_carlo import MonteCarlo
+from agent.return_estimates.td_lambda import TDLambda
 from envs.env import Env
 
 
@@ -37,9 +39,36 @@ class AgentFactory:
         model.initialize(self._observation_space)
         optimizer = torch.optim.Adam([
             {"params": actor.parameters(), "lr": .0005},
-            {"params": critic.parameters(), 'lr': .0005}
+            {"params": critic.parameters(), 'lr': .001}
         ])
-        return AgentPPO(model, optimizer, device=self.device)
+        return_estimation = MonteCarlo(discount=.99)
+        return AgentPPO(model, optimizer, return_estimation, device=self.device)
+
+    def ppo_separate_small_1d_td_lambda(self) -> AgentPPO:
+        actor = torch.nn.Sequential(
+            torch.nn.LazyLinear(10),
+            torch.nn.LeakyReLU(),
+            torch.nn.LazyLinear(10),
+            torch.nn.LeakyReLU(),
+            torch.nn.LazyLinear(self._action_space),
+            torch.nn.Softmax(dim=-1)
+        ).to(self.device)
+
+        critic = torch.nn.Sequential(
+            torch.nn.LazyLinear(10),
+            torch.nn.LeakyReLU(),
+            torch.nn.LazyLinear(10),
+            torch.nn.LeakyReLU(),
+            torch.nn.LazyLinear(1),
+        ).to(self.device)
+        model = ac.Separate(actor, critic, "test", device=self.device)
+        model.initialize(self._observation_space)
+        optimizer = torch.optim.Adam([
+            {"params": actor.parameters(), "lr": .0005},
+            {"params": critic.parameters(), 'lr': .001}
+        ])
+        return_estimation = TDLambda(discount=.99, lam=.95)
+        return AgentPPO(model, optimizer, return_estimation, device=self.device)
 
     def ppo_separate_wide_1d(self, name) -> AgentPPO:
         actor = torch.nn.Sequential(
@@ -75,7 +104,8 @@ class AgentFactory:
             {"params": actor.parameters(), "lr": .00005},
             {"params": critic.parameters(), 'lr': .0001}
         ])
-        return AgentPPO(model, optimizer, device=self.device)
+        return_estimation = MonteCarlo(discount=.99)
+        return AgentPPO(model, optimizer, return_estimation, device=self.device)
 
     def ppo_separate_critic_heavy_1d(self, name) -> AgentPPO:
         actor = torch.nn.Sequential(
@@ -100,10 +130,11 @@ class AgentFactory:
         model = ac.Separate(actor, critic, name, device=self.device)
         model.initialize(self._observation_space)
         optimizer = torch.optim.Adam([
-            {"params": actor.parameters(), "lr": .000001},
-            {"params": critic.parameters(), 'lr': .000005}
+            {"params": actor.parameters(), "lr": .0001},
+            {"params": critic.parameters(), 'lr': .0005}
         ])
-        return AgentPPO(model, optimizer, device=self.device)
+        return_estimation = MonteCarlo(discount=.99)
+        return AgentPPO(model, optimizer, return_estimation, device=self.device)
 
     def ppo_separate_deep_1d(self) -> AgentPPO:
         actor = torch.nn.Sequential(
@@ -147,7 +178,8 @@ class AgentFactory:
             {"params": actor.parameters(), "lr": .0005},
             {"params": critic.parameters(), 'lr': .0005}
         ])
-        return AgentPPO(model, optimizer, device=self.device)
+        return_estimation = MonteCarlo(discount=.99)
+        return AgentPPO(model, optimizer, return_estimation, device=self.device)
 
     def ppo_twohead_wide_1d(self) -> AgentPPO:
         body = torch.nn.Sequential(
@@ -184,8 +216,8 @@ class AgentFactory:
             {"params": actor.parameters(), "lr": .0001},
             {"params": critic.parameters(), 'lr': .0005}
         ])
-        agent = AgentPPO(model, optimizer, device=self.device)
-        return agent
+        return_estimation = MonteCarlo(discount=.99)
+        return AgentPPO(model, optimizer, return_estimation, device=self.device)
 
     def ppo_twohead_small_1d(self) -> AgentPPO:
         body = torch.nn.Sequential(
@@ -216,8 +248,8 @@ class AgentFactory:
             {"params": actor.parameters(), "lr": .0001},
             {"params": critic.parameters(), 'lr': .0005}
         ])
-        agent = AgentPPO(model, optimizer, device=self.device)
-        return agent
+        return_estimation = MonteCarlo(discount=.99)
+        return AgentPPO(model, optimizer, return_estimation, device=self.device)
 
     def ppo_separate_small_2d(self) -> AgentPPO:
         actor = torch.nn.Sequential(
@@ -266,7 +298,8 @@ class AgentFactory:
             {"params": actor.parameters(), "lr": .0001},
             {"params": critic.parameters(), 'lr': .001}
         ])
-        return AgentPPO(model, optimizer, device=self.device)
+        return_estimation = MonteCarlo(discount=.99)
+        return AgentPPO(model, optimizer, return_estimation, device=self.device)
 
     def ppo_twohead_small_2d(self) -> AgentPPO:
         body = torch.nn.Sequential(
@@ -313,8 +346,8 @@ class AgentFactory:
             {"params": actor.parameters(), "lr": .0005},
             {"params": critic.parameters(), 'lr': .001}
         ])
-        agent = AgentPPO(model, optimizer, self.device)
-        return agent
+        return_estimation = MonteCarlo(discount=.99)
+        return AgentPPO(model, optimizer, return_estimation, device=self.device)
 
     def agac_1d(self) -> AgentAGAC:
         actor = torch.nn.Sequential(
@@ -350,4 +383,5 @@ class AgentFactory:
             {"params": critic.parameters(), "lr": .0005},
             {"params": adversary.parameters(), "lr": .0005}
         ])
-        return AgentAGAC(model, optimizer, self.device)
+        return_estimation = MonteCarlo(discount=.99)
+        return AgentAGAC(model, optimizer, return_estimation, device=self.device)

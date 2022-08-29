@@ -1,25 +1,21 @@
-import numpy
 import torch
+from torch.optim import Optimizer
 
+import utils
 from agent.agent import Agent
-
-DEFAULT_DEVICE = torch.device("cpu")
+from agent.architectures.architecture import Architecture
 
 
 class AgentTorch(Agent):
 
-    def __init__(self, name: str,  device=DEFAULT_DEVICE):
-        super().__init__(name)
+    def __init__(self, model: Architecture, optimizer: Optimizer, device: torch.device):
+        super().__init__(model.name)
+        self.model = model
+        self.optimizer = optimizer
         self.device = device
 
-    def reset(self):
-        super().reset()
+    def save(self, filename: str = None):
+        utils.save(self.model, self.optimizer, filename if filename else self.model.name)
 
-    def get_action(self, obs: numpy.ndarray):
-        super().get_action(obs)
-
-    def give_reward(self, reward: float):
-        super().give_reward(reward)
-
-    def train(self):
-        super().train()
+    def load(self, filename: str = None):
+        utils.load(self.model, self.optimizer, filename if filename else self.model.name, self.device)

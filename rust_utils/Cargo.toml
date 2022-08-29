@@ -8,6 +8,6 @@ edition = "2021"
 crate-type = ["cdylib"]
 
 [dependencies]
-pyo3 = { version = "0.16.5", features = ["extension-module"] }
+pyo3 = { version = "0.16.5", features = ["extension-module", "auto-initialize"] }
 rand = "0.8.5"
 statrs = "0.15.0"

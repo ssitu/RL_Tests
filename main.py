@@ -7,31 +7,32 @@ if __name__ == '__main__':
     from envs.cartpole import CartPole
     from envs.flappybird import FlappyBird
 
-    device = use_cuda(True)
+    device = use_cuda(False)
 
     # Environment
-    env = FlappyBird(human_render=False, truncate=True)
+    env = CartPole(human_render=False)
 
     seed = 7777
     agent_factory = AgentFactory(env, device=device)
 
-    seed_global_rng(seed)
-    agent = agent_factory.ppo_separate_critic_heavy_1d("FlappyBird")
-    agent.load()
-    control = Controller(env, agent, saving_interval=200, save_plot_interval=200)
-    control.seed(seed)
-    control.plot.moving_avg_len = 10000
-    # control.plot.start()
-    control.play(50000000, training=True)
-    # control.plot.save("1")
-    # control.plot.stop()
+    iterations = 2000
 
-    # env2 = FlappyBird(human_render=False)
-    # seed_rng(seed)
-    # agent2 = agent_factory.agac_1d()
-    # control2 = Controller(env2, agent2)
-    # control2.seed(seed)
-    # control2.plot.start()
-    # control2.play(500, training=True)
-    # control2.plot.save("2")
-    # control2.plot.stop()
+    seed_global_rng(seed)
+    agent = agent_factory.ppo_separate_small_1d()
+    control = Controller(env, agent)
+    control.seed(seed)
+    control.plot.moving_avg_len = 100
+    control.plot.start()
+    control.play(iterations, training=True)
+    control.plot.save("1")
+    control.plot.stop()
+
+    seed_global_rng(seed)
+    agent2 = agent_factory.ppo_separate_small_1d_td_lambda()
+    control2 = Controller(env, agent2)
+    control2.seed(seed)
+    control2.plot.moving_avg_len = 100
+    control2.plot.start()
+    control2.play(iterations, training=True)
+    control2.plot.save("2")
+    control2.plot.stop()
