@@ -4,7 +4,6 @@ import agent.architectures.actor_critic as ac
 import agent.architectures.agac as agac
 from agent.agent_agac import AgentAGAC
 from agent.agent_ppo import AgentPPO
-from agent.agent_torch import DEFAULT_DEVICE
 from agent.return_estimates.monte_carlo import MonteCarlo
 from agent.return_estimates.td_lambda import TDLambda
 from envs.env import Env
@@ -12,7 +11,7 @@ from envs.env import Env
 
 class AgentFactory:
 
-    def __init__(self, env: Env, device=DEFAULT_DEVICE):
+    def __init__(self, env: Env, device):
         self._env = env
         self._action_space = self._env.get_action_space()
         self._observation_space = self._env.get_observation_space()

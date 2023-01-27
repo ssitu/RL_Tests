@@ -21,10 +21,10 @@ class Agent:
         """
         :param filename: Used as the filename if given
         """
-        raise NotImplementedError
+        pass
 
     def load(self, filename: str = None):
         """
         :param filename: Used as the filename if given
         """
-        raise NotImplementedError
+        pass

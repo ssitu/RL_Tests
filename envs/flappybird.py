@@ -178,7 +178,7 @@ class FlappyBird(Env, ABC):
     The game is done when the bird hits the pipes.
     """
 
-    def __init__(self, human_render: bool = False, truncate=True, fastest_speed=False):
+    def __init__(self, human_render: bool = False, truncate=True, fastest_speed=False, human_player=False):
         super().__init__(human_render)
         # The pygame window
         self.screen = None
@@ -217,6 +217,8 @@ class FlappyBird(Env, ABC):
         self.truncate = truncate
         self.last_time = None
         self.fastest_speed = fastest_speed
+        # The human player
+        self.human_player = human_player
         self.reset()
 
     def reset(self):
@@ -252,6 +254,15 @@ class FlappyBird(Env, ABC):
             if not self.fastest_speed:
                 pygame.time.wait(FRAME_DELAY - int(delta_time * 1000))
             self.last_time = time.time()
+        # Human player
+        if self.human_player:
+            # Check for keys pressed
+            keys = pygame.key.get_pressed()
+            # If the space bar is pressed, flap
+            if keys[pygame.K_SPACE]:
+                action = 1
+            else:
+                action = 0
         # Update the game
         self._update(action)
         # Get the state
