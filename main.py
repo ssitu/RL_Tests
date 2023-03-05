@@ -6,6 +6,7 @@ if __name__ == '__main__':
     from envs.bandit import Bandit
     from envs.cartpole import CartPole
     from envs.flappybird import FlappyBird
+    from envs.tictactoe import TicTacToe
 
     device = use_cuda(False)
 
@@ -19,7 +20,7 @@ if __name__ == '__main__':
 
     seed_global_rng(seed)
     agent = agent_factory.ppo_separate_small_1d()
-    control = Controller(env, agent)
+    control = Controller(env, [agent])
     control.seed(seed)
     control.plot.moving_avg_len = 100
     control.plot.start()
@@ -29,7 +30,7 @@ if __name__ == '__main__':
 
     seed_global_rng(seed)
     agent2 = agent_factory.ppo_separate_small_1d_td_lambda()
-    control2 = Controller(env, agent2)
+    control2 = Controller(env, [agent2])
     control2.seed(seed)
     control2.plot.moving_avg_len = 100
     control2.plot.start()

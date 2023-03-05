@@ -2,7 +2,7 @@
 
 from random import random
 
-import numpy
+import numpy as np
 import torch
 
 # Constants
@@ -13,6 +13,7 @@ import utils
 from agent.architectures.agac import AGACNet
 from agent.agent_torch import AgentTorch
 from agent.return_estimates.return_estimate import EpisodicReturn
+from typing import Optional
 
 DISCOUNT_FACTOR = .99
 EPSILON = .2
@@ -36,10 +37,13 @@ class AgentAGAC(AgentTorch):
         self.follow_adversary = False
         self.return_estimation = return_estimation
 
-    def get_action(self, obs: numpy.ndarray, training=True):
+    def get_action(self, obs: np.ndarray, action_mask: Optional[np.ndarray | None], training=True):
         state = torch.as_tensor(obs, dtype=torch.float, device=self.device).unsqueeze(0)
         # Sample action
         probabilities, _, adversary_probs = self.model(state)
+        # Multiply the probabilities with the action mask and then renormalize
+        probabilities = probabilities * torch.as_tensor(action_mask, dtype=torch.float, device=self.device)
+        probabilities = probabilities / torch.sum(probabilities)
         if not self.follow_adversary:
             dist = probabilities
         else:

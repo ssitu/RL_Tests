@@ -11,10 +11,9 @@ from envs.env import Env
 
 class AgentFactory:
 
-    def __init__(self, env: Env, device):
-        self._env = env
-        self._action_space = self._env.get_action_space()
-        self._observation_space = self._env.get_observation_space()
+    def __init__(self, env_class: type[Env], device):
+        self._action_space = env_class.get_action_space()
+        self._observation_space = env_class.get_observation_space()
         self.device = device
 
     def ppo_separate_small_1d(self) -> AgentPPO:
@@ -43,7 +42,7 @@ class AgentFactory:
         return_estimation = MonteCarlo(discount=.99)
         return AgentPPO(model, optimizer, return_estimation, device=self.device)
 
-    def ppo_separate_small_1d_td_lambda(self) -> AgentPPO:
+    def ppo_separate_small_1d_td_lambda(self, name) -> AgentPPO:
         actor = torch.nn.Sequential(
             torch.nn.LazyLinear(10),
             torch.nn.LeakyReLU(),
@@ -60,7 +59,7 @@ class AgentFactory:
             torch.nn.LeakyReLU(),
             torch.nn.LazyLinear(1),
         ).to(self.device)
-        model = ac.Separate(actor, critic, "test", device=self.device)
+        model = ac.Separate(actor, critic, name, device=self.device)
         model.initialize(self._observation_space)
         optimizer = torch.optim.Adam([
             {"params": actor.parameters(), "lr": .0005},
@@ -134,8 +133,33 @@ class AgentFactory:
         ])
         return_estimation = MonteCarlo(discount=.99)
         return AgentPPO(model, optimizer, return_estimation, device=self.device)
-
-    def ppo_separate_deep_1d(self) -> AgentPPO:
+    
+    def ppo_separate_wide_small_1d(self, name) -> AgentPPO:
+        actor = torch.nn.Sequential(
+            torch.nn.LazyLinear(30),
+            torch.nn.LeakyReLU(),
+            torch.nn.LazyLinear(15),
+            torch.nn.LeakyReLU(),
+            torch.nn.LazyLinear(self._action_space),
+            torch.nn.Softmax(dim=-1)
+        ).to(self.device)
+        critic = torch.nn.Sequential(
+            torch.nn.LazyLinear(30),
+            torch.nn.LeakyReLU(),
+            torch.nn.LazyLinear(10),
+            torch.nn.LeakyReLU(),
+            torch.nn.LazyLinear(1),
+        ).to(self.device)
+        model = ac.Separate(actor, critic, name, device=self.device)
+        model.initialize(self._observation_space)
+        optimizer = torch.optim.Adam([
+            {"params": actor.parameters(), "lr": .0001},
+            {"params": critic.parameters(), 'lr': .0005}
+        ])
+        return_estimation = MonteCarlo(discount=.99)
+        return AgentPPO(model, optimizer, return_estimation, device=self.device)
+    
+    def ppo_separate_deep_small_1d(self, name) -> AgentPPO:
         actor = torch.nn.Sequential(
             torch.nn.LazyLinear(10),
             torch.nn.LeakyReLU(),
@@ -171,11 +195,11 @@ class AgentFactory:
             torch.nn.LeakyReLU(),
             torch.nn.LazyLinear(1),
         ).to(self.device)
-        model = ac.Separate(actor, critic, "test", device=self.device)
+        model = ac.Separate(actor, critic, name, device=self.device)
         model.initialize(self._observation_space)
         optimizer = torch.optim.Adam([
             {"params": actor.parameters(), "lr": .0005},
-            {"params": critic.parameters(), 'lr': .0005}
+            {"params": critic.parameters(), 'lr': .001}
         ])
         return_estimation = MonteCarlo(discount=.99)
         return AgentPPO(model, optimizer, return_estimation, device=self.device)

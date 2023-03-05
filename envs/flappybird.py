@@ -17,6 +17,7 @@ PIPE_COLOR = (54, 65, 82)
 BACKGROUND_COLOR = (40, 44, 52)
 SCORE_COLOR = (150, 150, 150)
 FRAME_DELAY = 15
+KEY_ACTION_MAPPING = {None: 0, pygame.K_SPACE: 1}
 
 
 class Bird:
@@ -127,7 +128,8 @@ class Pipe:
         """
         Render the pipe on the screen
         """
-        pygame.draw.rect(screen, PIPE_COLOR, (int(self.x), int(self.y), self.width, self.height))
+        pygame.draw.rect(screen, PIPE_COLOR, (int(self.x),
+                         int(self.y), self.width, self.height))
 
     def get_state(self) -> Tuple[float, float]:
         """
@@ -216,12 +218,23 @@ class FlappyBird(Env, ABC):
         self.high_score = 0
         self.truncate = truncate
         self.last_time = None
+        # If true, the game will run as fast as possible. Only matters if human_render is true.
         self.fastest_speed = fastest_speed
         # The human player
         self.human_player = human_player
         self.reset()
 
-    def reset(self):
+    @classmethod
+    def get_observation_space(cls) -> tuple:
+        # This is the shape of the state numpy array
+        return 6,
+
+    @classmethod
+    def get_action_space(cls) -> int:
+        # The action space is 0 for do nothing, 1 for flap
+        return 2
+
+    def reset(self) -> Tuple[np.ndarray, np.ndarray | None]:
         # Reset the game
         self.bird.reset()
         # Move the bird vertically near to the center of the screen
@@ -237,9 +250,9 @@ class FlappyBird(Env, ABC):
         self._create_pipe_pair()
         self.last_time = time.time()
 
-        return self._get_state()
+        return self._get_state(), None
 
-    def step(self, action: int) -> Tuple[np.ndarray, float, bool]:
+    def step(self, action: int) -> Tuple[np.ndarray, float, bool, np.ndarray]:
         #
         # Call to events to prevent the game from freezing
         #
@@ -271,20 +284,13 @@ class FlappyBird(Env, ABC):
         reward = self._get_reward()
         # Check if the game is done
         done = self._is_terminated() or self._is_truncated()
-        return state, reward, done
-
-    def get_observation_space(self) -> tuple:
-        # This is the length of the state vector
-        return len(self._get_state()),
-
-    def get_action_space(self) -> int:
-        # The action space is 0 for do nothing, 1 for flap
-        return 2
+        return state, reward, done, None
 
     def render(self):
         # Render the game
         if self.screen is None:
-            self.screen = pygame.display.set_mode((self.window_width, self.window_height))
+            self.screen = pygame.display.set_mode(
+                (self.window_width, self.window_height))
         # Draw the background
         self.screen.fill(BACKGROUND_COLOR)
         self.bird.render(self.screen)
@@ -292,10 +298,12 @@ class FlappyBird(Env, ABC):
             top.render(self.screen)
             bottom.render(self.screen)
         # Draw the score
-        score_text = self.font.render(f"Score: {self.score}", True, SCORE_COLOR)
+        score_text = self.font.render(
+            f"Score: {self.score}", True, SCORE_COLOR)
         self.screen.blit(score_text, (10, 10))
         # Draw the high score
-        high_score_text = self.font.render(f"High score: {self.high_score}", True, SCORE_COLOR)
+        high_score_text = self.font.render(
+            f"High score: {self.high_score}", True, SCORE_COLOR)
         self.screen.blit(high_score_text, (10, 50))
         # Update the screen
         pygame.display.flip()
@@ -401,9 +409,9 @@ class FlappyBird(Env, ABC):
         # the bird's x, y, width, and height
         # And the pipe's x, y, width, and height
         return self.bird.x + self.bird.width > pipe.x \
-               and self.bird.x < pipe.x + pipe.width \
-               and self.bird.y + self.bird.height > pipe.y \
-               and self.bird.y < pipe.y + pipe.height
+            and self.bird.x < pipe.x + pipe.width \
+            and self.bird.y + self.bird.height > pipe.y \
+            and self.bird.y < pipe.y + pipe.height
 
     def _arrange_pipe_pair(self, top_pipe: Pipe, bottom_pipe: Pipe):
         # Arrange the pipes in a pair

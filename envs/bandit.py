@@ -1,7 +1,7 @@
 import random
 from typing import Tuple
 
-import numpy
+import numpy as np
 
 from envs.env import Env
 import matplotlib.pyplot as plt
@@ -22,10 +22,10 @@ class Bandit(Env):
         self.last_action_taken = 0
         self.random_generator = random.Random()
 
-    def get_obs(self) -> numpy.ndarray:
-        return numpy.array([0])
+    def get_obs(self) -> np.ndarray:
+        return np.array([0])
 
-    def step(self, action: int) -> Tuple[numpy.ndarray, float, bool]:
+    def step(self, action: int) -> Tuple[np.ndarray, float, bool, np.ndarray | None]:
         # self.action_count[action] += 1
         # self.time_steps += 1
         # for i in range(self.arms):
@@ -38,10 +38,10 @@ class Bandit(Env):
             self.render()
         self.last_action_taken = action
         reward = 1 if self.random_generator.random() < self.probabilities[action] else 0
-        return self.get_obs(), reward, True
+        return self.get_obs(), reward, True, None
 
-    def reset(self) -> numpy.ndarray:
-        return self.get_obs()
+    def reset(self) -> Tuple[np.ndarray, np.ndarray | None]:
+        return self.get_obs(), None
 
     def get_observation_space(self) -> tuple:
         return 1,

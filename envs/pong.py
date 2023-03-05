@@ -20,12 +20,12 @@ class Pong(Env):
         self.env = gym.make('Pong-v0')
         print("Not updated with the new step and render api")
 
-    def step(self, action: int) -> Tuple[np.array, float, bool]:
+    def step(self, action: int) -> Tuple[np.ndarray, float, bool, np.ndarray | None]:
         next_state, reward, done, _ = self.env.step(action)
-        return preprocess(next_state), reward, done
+        return preprocess(next_state), reward, done, None
 
-    def reset(self) -> np.array:
-        return preprocess(self.env.reset())
+    def reset(self) -> Tuple[np.ndarray, np.ndarray | None]:
+        return preprocess(self.env.reset()), None
 
     def get_observation_space(self) -> tuple:
         height, width, channels = self.env.observation_space.shape

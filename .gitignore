@@ -4,3 +4,4 @@
 /agent/architectures/__pycache__
 /rust_utils/target/
 **/__pycache__/
+*.ipynb

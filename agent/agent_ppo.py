@@ -1,7 +1,7 @@
 import random
-
-import numpy
+import numpy as np
 import torch
+from typing import Optional
 
 # Constants
 from torch.optim import Optimizer
@@ -32,10 +32,13 @@ class AgentPPO(AgentTorch):
         self.greedy = False
         self.return_estimation = return_estimation
 
-    def get_action(self, obs: numpy.ndarray, training=True):
+    def get_action(self, obs: np.ndarray, action_mask: Optional[np.ndarray | None], training=True):
         state = torch.as_tensor(obs, dtype=torch.float, device=self.device).unsqueeze(0)
         # Sample action
         probabilities, state_value = self.model(state)
+        # Multiply the probabilities with the action mask and then renormalize
+        probabilities = probabilities * torch.as_tensor(action_mask, dtype=torch.float, device=self.device)
+        probabilities = probabilities / torch.sum(probabilities)
         if self.greedy:
             max = 0
             action = 0
