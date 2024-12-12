@@ -11,13 +11,6 @@ DEFAULT_AGENT_NAME = "FlappyBird"
 
 
 def main_human():
-    # env = FlappyBird(human_render=True, truncate=False,
-    #                  fastest_speed=False, human_player=True)
-    # # Empty agent
-    # agent = Agent(name="human")
-    # control = Controller(env, [agent])
-    # control.play(50000000, training=False)
-
     env = FlappyBird(human_render=True, truncate=False,
                      fastest_speed=False)
     agent = AgentHuman(name="human", key_to_action_mapping=KEY_ACTION_MAPPING, real_time=True)
@@ -30,8 +23,7 @@ def main_train(agent_name):
     seed = 7777
     agent_factory = AgentFactory(env, device=use_cuda(True))
     seed_global_rng(seed)
-    # agent = agent_factory.ppo_separate_critic_heavy_1d(agent_name)
-    agent = agent_factory.ppo_separate_wide_small_1d(agent_name)
+    agent = agent_factory.ppo_separate_critic_heavy_1d(agent_name)
     agent.load()
     actor, critic = agent.optimizer.param_groups
     # actor['lr'] = 0.000001

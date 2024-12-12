@@ -80,7 +80,7 @@ class AgentAGAC(AgentTorch):
 
             # Probabilities of the current policy
             new_probabilities, state_values, adv_probs = self.model(states_batch)
-            new_action_probs = new_probabilities.gather(1, torch.tensor(self.actions).unsqueeze(1))
+            new_action_probs = new_probabilities.gather(1, actions_batch)
             # Calculate ratios
             ratios = new_action_probs / old_action_probabilities
 
@@ -90,7 +90,7 @@ class AgentAGAC(AgentTorch):
             state_values += c * utils.kl_div(new_probabilities.detach(), adv_probs.detach())  # AGAC
             advantages = discounted_rewards - state_values
             advantages = advantages.detach()  # Prevent the loss_clip from affecting the gradients of the critic
-            adv_action_probs = adv_probs.gather(1, torch.tensor(self.actions).unsqueeze(1))
+            adv_action_probs = adv_probs.gather(1, actions_batch)
             advantages += c * (torch.log(new_action_probs) - torch.log(adv_action_probs.detach()))  # AGAC
 
             # Entropy

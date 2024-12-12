@@ -12,5 +12,5 @@ if __name__ == '__main__':
 
     agent = agent_factory.ppo_separate_critic_heavy_1d("FlappyBirdFinal")
     agent.set_greedy(True)
-    control = Controller(env, agent, load_at_reset=True)
+    control = Controller(env, [agent], load_at_reset=True)
     control.play(50000000, training=False)

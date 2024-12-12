@@ -35,7 +35,7 @@ class AgentHuman(Agent):
                 valid_actions = [i for i in range(
                     len(action_mask)) if action_mask[i] == 1]
                 print(f"Valid actions: {valid_actions}")
-                action = input("Enter an valid action: ")
+                action = input("Enter a valid action: ")
                 try:
                     action = int(action)
                     if action in valid_actions:

@@ -7,7 +7,7 @@ from time import sleep
 
 class TicTacToe(Env):
 
-    def __init__(self, enemy_agent: Agent, human_render=False, human_render_delay=2):
+    def __init__(self, enemy_agent: Agent, human_render=False, human_render_delay=2, reload_enemy_interval=100):
         super().__init__(human_render)
         # Initialize the board as a 3x3 numpy array of zeros
         self.board = np.zeros((3, 3), dtype=int)
@@ -16,6 +16,11 @@ class TicTacToe(Env):
         # Id for the enemy agent, 1 or 2, but not the same as agent_player
         self.enemy_id = 1  # Will set to 2 on reset
         self.enemy_agent = enemy_agent
+        # The number of games played
+        self.games_played = -1 # Will be set to 0 on reset
+
+        # How many games in between reloading the enemy agent
+        self.reload_enemy_interval = reload_enemy_interval
 
         # Seconds between moves when human_render is True
         self.human_render_delay = human_render_delay
@@ -31,6 +36,7 @@ class TicTacToe(Env):
     def render(self):
         if self.human_render:
             print()
+            print("Enemy is", "X" if self.enemy_id == 1 else "O")
             for i in range(3):
                 for j in range(3):
                     if self.board[i, j] == 0:
@@ -121,6 +127,7 @@ class TicTacToe(Env):
         return self.get_obs(), reward, done, self.get_action_mask()
 
     def reset(self) -> Tuple[np.ndarray, np.ndarray | None]:
+        self.games_played += 1
         self.board = np.zeros((3, 3), dtype=int)
         # Switch who goes first
         self.agent_id = (self.agent_id % 2) + 1
@@ -129,7 +136,9 @@ class TicTacToe(Env):
         self.render()
 
         # Enemy
-        self.enemy_agent.load()
+        if self.games_played % self.reload_enemy_interval == 0:
+            self.enemy_agent.load()
+
         if self.enemy_id == 1:
             enemy_action = self.enemy_agent.get_action(
                 self.get_obs(), self.get_action_mask(), training=False)

@@ -161,8 +161,8 @@ class Plot(mp.Process):
                 # Update the plot
                 self.ax.cla()
                 self.format_plot()
-                self.ax.plot(self.data)
-                self.ax.plot(self.moving_averages)
+                self.ax.scatter(range(len(self.data)), self.data, s=2)
+                self.ax.plot(self.moving_averages, color='orange')
                 plt.pause(self.update_interval)
         except (BrokenPipeError, EOFError) as e:
             print(e)

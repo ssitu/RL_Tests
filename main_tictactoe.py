@@ -30,6 +30,14 @@ def main_train(agent_name):
     env = TicTacToe(enemy_agent=enemy_agent, human_render=False)
     agent = agent_factory.ppo_separate_wide_1d(agent_name)
     agent.load()
+    actor, critic = agent.optimizer.param_groups
+    actor['lr'] = 0.000001
+    critic['lr'] = 0.000001
+    # Sum all the weights in actor
+    total = 0
+    for param in actor['params']:
+        total += param.data.sum()
+    print(total)
     control = Controller(
         env, [agent], saving_interval=200, save_plot_interval=200)
     control.seed(seed)
